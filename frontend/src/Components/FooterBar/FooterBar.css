@@ -1,0 +1,12 @@
+.footbar-nav{
+    position: fixed;
+    z-index: 9999999;
+    bottom: 0;
+    width: 100%;
+    left: 0;
+    right: 0;
+}
+
+.footer-btn{
+    border-radius: 15px;
+}

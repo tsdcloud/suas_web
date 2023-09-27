@@ -1,0 +1,30 @@
+.page-header {
+    background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.63), rgba(0,0,0,0.5)), url('../../assets/bg1.jpeg');
+    background-size: cover;
+    height: 300px;
+    background-position: center center;
+    /* Add other properties like background-size, background-position, etc. as needed */
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: start;
+  }
+
+.page-heading{
+    color: #fff;
+    font-size: 1.5em;
+    font-weight: bold;
+    vertical-align: bottom;
+}
+
+.page-description{
+    color: #cecece; 
+    font-size: 12px;    
+}
+
+.float-btn{
+    position: fixed !important;
+    z-index: 999999999;
+    border-radius: 50px;
+    box-shadow: 5px 15px 30px rgba(59, 98, 105, 1) !important;
+}

@@ -1,0 +1,36 @@
+
+.hero-section {
+    position: relative;
+    width: 100%;
+    height: 400px;
+  }
+  
+  .carousel {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+  
+  .carousel-slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+  }
+  
+  .carousel-slide.active {
+    opacity: 1;
+  }
+  
+  .carousel-slide h1,
+  .carousel-slide p {
+    color: #fff;
+  }
+  
+  
+  
