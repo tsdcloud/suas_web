@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useRef, useReducer} from 'react'
+import React, {useEffect, useState, useRef, useReducer, useCallback} from 'react'
 import { v4 as uuidv4 } from "uuid";
 import { useParams, useNavigate } from 'react-router-dom';
 import './SalleAttente.css';
@@ -47,29 +47,39 @@ function SalleAttente() {
     // let channelName = atelierTest;
     let channelName = atelierTest.replaceAll(':', '_').replaceAll('-', '_');
     
-
+    const [audios, setAudio] = useState({})
    
 
-var audioTracks = {
+var audioTracks = useRef({
     localAudioTrack: null,
     remoteAudioTracks: {},
-    };
+    })
+
     
 var rtcClient;
 
 const settings = {
-    token: localStorage.getItem("agora_token"),
-    channelName,
-    userId: uuidv4(),
-    appid: appid
+    // token: localStorage.getItem("agora_token"),
+    token: "007eJxTYBD2y5+Se3dm8GFxjYMl/HlMXuamAU8dVKLixTma4s3CnyowJJommZqbGBgkmZubmBgZG1kkGVmYmViYpZmkGpqaplgmPpdLbQhkZHh5JI6VkQECQXw1hiQDE4uUlGSzeMsUk5R4E2OTxPgkgzST+JTkRBNDczNLgzSDlHgDBgYARaMksg==",
+    channelName: localStorage.getItem("channel_name"),
+    userId: localStorage.getItem("uid"),
+    appid: "a5b57400b77442328b286486f4e155d9"
 };
+
 
 
 const initRtc = async () => {
         rtcClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8", role:"host" });
-        await rtcClient.join(settings.appid, settings.channelName, settings.token, settings.userId)
-        audioTracks.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-        rtcClient.publish(audioTracks.localAudioTrack);
+        await rtcClient.join(settings.appid, settings.channelName, settings.token, null)
+        audioTracks.current.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+        // let saveAudioTracks = await AgoraRTC.createMicrophoneAudioTrack()
+         AgoraRTC.createMicrophoneAudioTrack().then((res)=>{
+            setAudio({res})
+            console.log({audios})
+        })
+
+        rtcClient.publish(audioTracks.current.localAudioTrack);
+        console.log(settings.userId)
 
         console.log(rtcClient);
 
@@ -77,10 +87,25 @@ const initRtc = async () => {
         rtcClient.on("user-published", handleUserPublished);
         rtcClient.on("user-left", handleUserLeft);
         
-
+        console.log({audios})
         console.log("Publish success!");
     }
+    
+    async function muteAudio() {
+        console.log(audioTracks)
+        if (!audioTracks.current.localAudioTrack){
+             return
+            };
+        await audioTracks.current.localAudioTrack.setMuted(true);
+      }
 
+      async function unmuteAudio() {
+          console.log(audioTracks)
+        if (!audioTracks.current.localAudioTrack){
+             return
+            };
+        await audioTracks.current.localAudioTrack.setMuted(false);
+      }
     const getMessageStream = async ()=>{
         setInterval(async()=>{
                 let headersList = {
@@ -120,13 +145,13 @@ const initRtc = async () => {
                         .filter(item=>item.title ==="updateHand" && item.handStatus === true)
                         .sort((a, b) => a.timestamp - b.timestamp);
 
-                        if(
-                            filterHandsUp[filterHandsUp.length - 1]?.title === "updateHand" && filterHandsUp[filterHandsUp.length - 1]?.handStatus ===true){
-                            console.log("Hand update");
-                            setHandIsUp(true);
-                        }else{
-                            setHandIsUp(false);
-                        }                       
+                        // if(
+                        //     filterHandsUp[filterHandsUp.length - 1]?.title === "updateHand" && filterHandsUp[filterHandsUp.length - 1]?.handStatus ===true){
+                        //     console.log("Hand update");
+                        //     setHandIsUp(true);
+                        // }else{
+                        //     setHandIsUp(false);
+                        // }                       
                         setMessageThread(data.data.sort((a, b) => a.timestamp - b.timestamp).filter(message=> message.title === "publicMessage"));
                         scrollToLatestMessage();
                     }
@@ -198,14 +223,15 @@ const initRtc = async () => {
         await  rtcClient.subscribe(user, mediaType);
         
         if (mediaType == "audio"){
-            audioTracks.remoteAudioTracks[user.uid] = [user.audioTrack]
+            audioTracks.current.remoteAudioTracks[user.uid] = [user.audioTrack]
             user.audioTrack.play();
         }
     }
 
 
     let handleUserLeft = async (user) => {
-        delete audioTracks.remoteAudioTracks[user.uid]
+        if(!audioTracks.current.remoteAudioTracks) return
+        delete audioTracks.current.remoteAudioTracks[user.uid]
     }
 
 
@@ -213,69 +239,30 @@ const initRtc = async () => {
         // initRtc()
     }
 
-    const handleMicStatus =async (channelParameters, agoraEngine)=>{
-
-        const setOpenMIc = async ()=>{
-            // // Create a local audio track from the microphone audio.
-            // channelParameters.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-            // // Publish the local audio track in the channel.
-            // await agoraEngine.publish(channelParameters.localAudioTrack);
-            // console.log("Publish success!");
-            // console.log("[SUAS] ==> Joined Succesfully");
-            // setMicStatus(false);
-        }
-        
-        const setCloseMIc = async ()=>{
-            // await agoraEngine.unpublish();
-            // rtcClient.unpublish();
-            // rtcClient.leave();
-            // if(userJoined){
-            //     console.log(user)
-            //     console.log(userJoined)
-            //     // await audioTracks.localAudioTrack.close();
-            // }
-            // setMicStatus(true);
-            // try {
-            //     // audioTracks.localAudioTrack.stop();
-            //     // audioTracks.localAudioTrack.close();
-            //     await rtcClient.unpublish();
-            //     await rtcClient.leave();
-            //     console.log("[SUAS] ==> Left Succesfully");
-            //     setMicStatus(false)
-            // } catch (error) {
-            //     // setOpenMIc();
-            //     console.error("[SUAS_ERROR]",error) 
-            // }
-            // finally{
-            //     // audioTracks.localAudioTrack.stop();
-            //     // audioTracks.localAudioTrack.close();
-            //     // await rtcClient.leave();
-            //     // console.log("[SUAS] ==> Left Succesfully");
-            // }
-            // await rtcClient.join(appid, channelName, token, userId);
-            // audioTracks.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-        }
-        
-        setMicStatus(!micStatus);
+    const handleMicStatus =async ()=>{
         if(micStatus){
-            console.log(rtcClient);
-            console.log("Closed")
-            // setCloseMIc()
-            await rtcClient.unpublish();
-            audioTracks.localAudioTrack.stop();
+            // console.log(rtcClient);
+            // console.log("Closed")
+            // // setCloseMIc()
+            // await rtcClient.unpublish();
+            // audioTracks.localAudioTrack.stop();
+            setMicStatus(false);
+            console.log("Closed");
+            unmuteAudio()
         }
         else{
-            console.log(rtcClient)
-            console.log(audioTracks)
-            // setOpenMIc()
-            // Create a local audio track from the microphone audio.
-            audioTracks.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-            // Publish the local audio track in the channel.
-            rtcClient.publish(audioTracks.localAudioTrack);
-            console.log("Publish success!");
-            console.log("[SUAS] ==> Joined Succesfully");
-            setMicStatus(false);
+            // console.log(rtcClient)
+            // console.log(audioTracks)
+            // // setOpenMIc()
+            // // Create a local audio track from the microphone audio.
+            // audioTracks.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+            // // Publish the local audio track in the channel.
+            // rtcClient.publish(audioTracks.localAudioTrack);
+            // console.log("Publish success!");
+            // console.log("[SUAS] ==> Joined Succesfully");
+            setMicStatus(true);
             console.log("Openned")
+            muteAudio();
         }
     }
 
@@ -356,7 +343,6 @@ const initRtc = async () => {
 
             if(response.status === 201){
                 getMessageStream();
-                initRtc();
             }
         } catch (error) {
             console.log(error);
@@ -515,6 +501,9 @@ const initRtc = async () => {
         getAgoraToken();
     }, [id]);
 
+    useEffect(()=>{
+        initRtc();
+    }, [])
 
 
     const navigate = useNavigate();
@@ -576,10 +565,11 @@ const initRtc = async () => {
     }
 
     window.addEventListener('beforeunload', function() {
+            handleQuitMeetings();
+            handleUserLeft();
+            // handleCloseMic();
         // const quit = this.confirm("Voulez-vous vraiment quitter la réunion ?")
         // if(quit){
-        //     handleQuitMeetings();
-        //     handleCloseMic();
         // }
     });
 
@@ -596,7 +586,9 @@ const initRtc = async () => {
         }}>
             <button className='btn btn-default' onClick={()=>{
                 // leaveRoom()
+                handleUserLeft();
                 navigate(-1)
+
                 }}>
                 <i className='bx bxs-chevron-left'></i> {" Retour"}
             </button>

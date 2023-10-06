@@ -17,6 +17,8 @@ const { id } = useParams();
 useEffect(() => {
     // fetchAtelier(id);
     fetchMyAtelier();
+    localStorage.setItem("uid", id);
+    localStorage.setItem("channel_name", id.replaceAll("-","_").replaceAll(":","_"));
   }, [id]);
   
   useEffect(() => {
