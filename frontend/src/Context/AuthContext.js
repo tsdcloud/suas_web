@@ -1,4 +1,4 @@
-import React, { createContext, useState } from 'react';
+import React, { createContext, useEffect, useState } from 'react';
 
 const AuthContext = createContext();
 
@@ -8,6 +8,10 @@ const AuthProvider = ({ children }) => {
     refreshToken: null,
   });
   const [isLoggedIn, setIsLoggedIn] = useState(true);
+
+  useEffect(()=>{
+    
+  }, [])
 
   return (
     <AuthContext.Provider value={{ authTokens, setAuthTokens, isLoggedIn, setIsLoggedIn }}>

@@ -1,6 +1,7 @@
-import React, {useEffect, useState, useRef, useReducer, useCallback} from 'react'
+import React, {useEffect, useState, useRef, useContext} from 'react'
 import { v4 as uuidv4 } from "uuid";
 import { useParams, useNavigate } from 'react-router-dom';
+import AuthContext from "../../Context/AuthContext";
 import './SalleAttente.css';
 import avatar from '../../assets/avatar.jpg'
 import chatbg from '../../assets/chatbg.jpg'
@@ -20,13 +21,20 @@ function SalleAttente() {
     // const [token, setToken] = useState(localStorage.getItem('agora_token'));
     const [userJoined, setUserJoined] = useState(false);
     const [userPublish, setUserPublish] = useState(false);
+    const [currentSpeaker, setCurrentSpeaker] = useState('');
+    const [currentSpeakerDesc, setCurrentSpeakerDesc] = useState('');
+    const [meetingLeft, setMeetingLeft] = useState(false);
     const [userId, setUserId] = useState(uuidv4());
+    let userProfile = useRef({});
     const [time, setTime] = useState(1);
     const messageInput = useRef();
     const chatSection = useRef();
+    const userInfo = useRef();
     const chatMessages = document.querySelector ("#chat-section");
     const messagesEndRef = useRef(null);
     const [user, setUser] = useState('internaute.uuid');
+
+    const {isLoggedIn, setIsLoggedIn} = useContext(AuthContext);
     // const [rtcClient, setRtcClient] = useState(null);
     // const [audioTracks, setAudioTracks] = useState({
     //     localAudioTrack: null,
@@ -42,6 +50,8 @@ function SalleAttente() {
 
     const atelierTest = id
     const micBtn = useRef()
+    const interval = useRef()
+
     // const atelierTest = "a5b57400b77442328b286486f4e155d9";
     // const atelierTest = "atelier1.uuid"
     // let channelName = atelierTest;
@@ -50,86 +60,135 @@ function SalleAttente() {
     const [audios, setAudio] = useState({})
    
 
-var audioTracks = useRef({
-    localAudioTrack: null,
-    remoteAudioTracks: {},
-    })
+    const rtcClientRef = useRef(null);
+    const audioTracksRef = useRef({
+      localAudioTrack: null,
+      remoteAudioTracks: {},
+    });
 
     
-var rtcClient;
+    var rtcClient;
 
-const settings = {
-    // token: localStorage.getItem("agora_token"),
-    token: "007eJxTYBD2y5+Se3dm8GFxjYMl/HlMXuamAU8dVKLixTma4s3CnyowJJommZqbGBgkmZubmBgZG1kkGVmYmViYpZmkGpqaplgmPpdLbQhkZHh5JI6VkQECQXw1hiQDE4uUlGSzeMsUk5R4E2OTxPgkgzST+JTkRBNDczNLgzSDlHgDBgYARaMksg==",
-    channelName: localStorage.getItem("channel_name"),
-    userId: localStorage.getItem("uid"),
-    appid: "a5b57400b77442328b286486f4e155d9"
-};
+    const settings = {
+        // token: localStorage.getItem("agora_token"),
+        channelName: null,
+        userId: null,
+        appid: null,
+        token: null,
+        role: "host"
+        // channelName: localStorage.getItem("channel_name"),
+        // userId: localStorage.getItem("uid"),
+        // appid: "a5b57400b77442328b286486f4e155d9",
+        // token: getTokenAgora(channelName, userId)
+    };
 
-
-
-const initRtc = async () => {
-        rtcClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8", role:"host" });
-        await rtcClient.join(settings.appid, settings.channelName, settings.token, null)
-        audioTracks.current.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-        // let saveAudioTracks = await AgoraRTC.createMicrophoneAudioTrack()
-         AgoraRTC.createMicrophoneAudioTrack().then((res)=>{
-            setAudio({res})
-            console.log({audios})
-        })
-
-        rtcClient.publish(audioTracks.current.localAudioTrack);
-        console.log(settings.userId)
-
-        console.log(rtcClient);
-
-        rtcClient.on('user-joined', handleUserJoined);
-        rtcClient.on("user-published", handleUserPublished);
-        rtcClient.on("user-left", handleUserLeft);
-        
-        console.log({audios})
-        console.log("Publish success!");
+    function getCookie(name) {
+        const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.startsWith(name + '=')) {
+                return cookie.substring(name.length + 1);
+                }
+            }
+            return null;
     }
-    
-    async function muteAudio() {
-        console.log(audioTracks)
-        if (!audioTracks.current.localAudioTrack){
-             return
-            };
-        await audioTracks.current.localAudioTrack.setMuted(true);
-      }
 
-      async function unmuteAudio() {
-          console.log(audioTracks)
-        if (!audioTracks.current.localAudioTrack){
-             return
-            };
-        await audioTracks.current.localAudioTrack.setMuted(false);
-      }
-    const getMessageStream = async ()=>{
-        setInterval(async()=>{
+
+    const initRtc = async () => {
+            userProfile.current = (JSON.parse(getCookie('profile')));
+            // console.log(userProfile.current);
+
+        settings.channelName = localStorage.getItem("channel_name");
+        console.log(settings.channelName);
+        settings.appid = "a5b57400b77442328b286486f4e155d9";
+        // settings.userId = generateUid();
+        settings.userId = Math.floor(Math.random() * (5000 - 1000 + 1)) + 1000;
+        console.log(settings.userId)
+        // settings.userId = +localStorage.getItem("uid");
+        settings.token = await getTokenAgora(settings.channelName, settings.userId);
+
+        rtcClientRef.current = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8', role: 'host' });
+        await rtcClientRef.current.join(settings.appid, settings.channelName, settings.token, settings.userId);
+        audioTracksRef.current.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+        rtcClientRef.current.publish(audioTracksRef.current.localAudioTrack);
+
+        console.log(settings.userId);
+        console.log(rtcClientRef.current);
+
+        rtcClientRef.current.on('user-joined', handleUserJoined);
+        rtcClientRef.current.on('user-published', handleUserPublished);
+        rtcClientRef.current.on('user-left', handleUserLeft);
+
+        console.log('Publish success!');
+    };
+
+    const muteAudio = async () => {
+        console.log(audioTracksRef.current);
+        if (!audioTracksRef?.current?.localAudioTrack) {
+            return;
+        }
+        console.log("[SUAS MUTED AUDIO]");
+        if(meetingLeft) return;
+        setMicStatus(false);
+        try {
+            await audioTracksRef?.current?.localAudioTrack?.setMuted(true);
+        } catch (error) {
+            console.log(error);
+        }finally{
+            // rtcClientRef.current.leave();
+        }
+    };
+
+    const unmuteAudio = async () => {
+        console.log(audioTracksRef.current);
+        if (!audioTracksRef?.current?.localAudioTrack) {
+            return;
+        }
+        if(meetingLeft) return;
+        console.log("[SUAS UNMUTED AUDIO]");
+        setMicStatus(true);
+        try {
+            await audioTracksRef.current.localAudioTrack?.setMuted(false);
+        } catch (error) {
+            console.log(error);
+        }finally{
+            // rtcClientRef.current.leave();
+        }
+    };
+
+    const getMessageStream = async () => {
+        interval.current = setInterval(async () => {
                 let headersList = {
                 "Accept": "*/*",
                 "Authorization": "Bearer "+TOKEN,
                 'Content-Type': 'application/json'
-               }
-               
-               let bodyContent = JSON.stringify({
+                }
+                
+                let bodyContent = JSON.stringify({
                 "id_atelier":atelierTest,
                 "time":0
-               });
-               
-               let response = await fetch(URLs.getMessageStream, {
-                 method: "POST",
-                 body: bodyContent,
-                 headers: headersList
-               });
+                });
+                
+                let response = await fetch(URLs.getMessageStream, {
+                    method: "POST",
+                    body: bodyContent,
+                    headers: headersList
+                });
 
-               try {
+                try {
 
-                   let data = await response.json();
-                   if(response.status === 201) {
+                    let data = await response.json();
+                    if(response.status === 201) {
                     if(data.data.length > 0) {
+
+                        const activeSpeaker = data.data.filter(item => item.title === "talking").sort((a, b) => a.timestamp - b.timestamp);
+                        const speaker = activeSpeaker[activeSpeaker.length - 1];
+                        if(speaker?.title === 'talking'){
+                            // console.log(speaker.nom, speaker.role);
+                            setCurrentSpeaker(speaker.nom)
+                            setCurrentSpeakerDesc(speaker.message)
+                        }
+
                         const filterMicOpen = data.data.filter(item => item.id_user === user && item.title === "updateMic")
                         .sort((a, b) => a.timestamp - b.timestamp);
 
@@ -138,27 +197,23 @@ const initRtc = async () => {
                             ){
                             console.log("Mic update")
                             handleHandDown();
+                            unmuteAudio();
+                        }else{
+                            muteAudio();
                         }
 
                         const filterHandsUp = data.data
                         .filter(item => item.id_user ===user)
                         .filter(item=>item.title ==="updateHand" && item.handStatus === true)
                         .sort((a, b) => a.timestamp - b.timestamp);
-
-                        // if(
-                        //     filterHandsUp[filterHandsUp.length - 1]?.title === "updateHand" && filterHandsUp[filterHandsUp.length - 1]?.handStatus ===true){
-                        //     console.log("Hand update");
-                        //     setHandIsUp(true);
-                        // }else{
-                        //     setHandIsUp(false);
-                        // }                       
+                    
                         setMessageThread(data.data.sort((a, b) => a.timestamp - b.timestamp).filter(message=> message.title === "publicMessage"));
                         scrollToLatestMessage();
                     }
-                   }
-               } catch (error) {
+                    }
+                } catch (error) {
                 console.log(error);
-               }
+                }
         }, 2000)
     }
 
@@ -212,71 +267,59 @@ const initRtc = async () => {
         }
         messageInput.value = ""
     }
-
     
     let handleUserJoined = async (user) => {
         console.log('USER:', user)
     }
 
-      
     let handleUserPublished = async (user, mediaType) => {
-        await  rtcClient.subscribe(user, mediaType);
+        await  rtcClientRef.current.subscribe(user, mediaType);
         
         if (mediaType == "audio"){
-            audioTracks.current.remoteAudioTracks[user.uid] = [user.audioTrack]
+            audioTracksRef.current.remoteAudioTracks[user.uid] = [user.audioTrack]
             user.audioTrack.play();
         }
     }
 
-
     let handleUserLeft = async (user) => {
-        if(!audioTracks.current.remoteAudioTracks) return
-        delete audioTracks.current.remoteAudioTracks[user.uid]
+        if(!audioTracksRef.current.remoteAudioTracks) return
+        delete audioTracksRef.current.remoteAudioTracks[user?.uid]
     }
 
-
-    const enterRoom = async () => {
-        // initRtc()
-    }
+    // let leaveRoom = async ()=>{
+    //     rtcClientRef.current.unpublish(audioTracksRef.current.localAudioTrack);
+    // }
 
     const handleMicStatus =async ()=>{
         if(micStatus){
-            // console.log(rtcClient);
-            // console.log("Closed")
-            // // setCloseMIc()
-            // await rtcClient.unpublish();
-            // audioTracks.localAudioTrack.stop();
-            setMicStatus(false);
+            setMicStatus(true);
             console.log("Closed");
             unmuteAudio()
         }
         else{
-            // console.log(rtcClient)
-            // console.log(audioTracks)
-            // // setOpenMIc()
-            // // Create a local audio track from the microphone audio.
-            // audioTracks.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-            // // Publish the local audio track in the channel.
-            // rtcClient.publish(audioTracks.localAudioTrack);
-            // console.log("Publish success!");
-            // console.log("[SUAS] ==> Joined Succesfully");
-            setMicStatus(true);
+            handleMicOff();
+            setMicStatus(false);
             console.log("Openned")
             muteAudio();
         }
     }
 
-    const handleQuitMeetings= async ()=>{
+    const handleQuitMeeting=async ()=>{
+      
+        if(handIsUp){
+            handleHandDown();
+        }
+
         let headersList = {
             "Accept": "*/*",
             "Authorization": "Bearer "+TOKEN,
             "Content-Type": "application/json"
-            }
+        }
         
         let bodyContent = JSON.stringify({
             "id_user":  user,
             "id_atelier":  atelierTest,
-            "nom":  "User 1",
+            "nom":  "User "+userId,
             "image":  "assets/images/defaultUserIcon.png",
             "role":  "Paneliste",
             "message":  messageInput.value,
@@ -284,7 +327,7 @@ const initRtc = async () => {
             "micStatus":  false,
             "handStatus":  false,
             "title":  "newleave",
-            "time":  new Date().getTime(),
+            "time":  Math.floor(new Date().getTime() / 1000),
         });
 
         try {          
@@ -294,16 +337,21 @@ const initRtc = async () => {
                 body: bodyContent,
                 headers: headersList
             });
-            
-            // Joining the Agora flux
-            rtcClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8", role:"host" });
-            await rtcClient.join(appid, channelName, token, userId);
-            audioTracks.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
 
             let data = await response.json();
 
             if(response.status === 201){
-                getMessageStream();
+                console.log(interval.current)
+                rtcClientRef.current?.unpublish(audioTracksRef.current?.localAudioTrack);
+                audioTracksRef.current.localAudioTrack.stop();
+                audioTracksRef.current.localAudioTrack.close();
+                rtcClientRef.current.value = null;
+                clearInterval(interval.current);
+                setMeetingLeft(true);
+                await rtcClientRef.current.leave();
+                console.log("[MEETING LEFT SUCCESSFULLY]");
+            }else{
+                console.log("[MEETING COULDN'T LEFT SUCCESSFULLY]");
             }
         } catch (error) {
             console.log(error);
@@ -347,7 +395,6 @@ const initRtc = async () => {
         } catch (error) {
             console.log(error);
         }
-        messageInput.value = ""
     }
 
     const getAgoraToken = async()=>{
@@ -386,6 +433,42 @@ const initRtc = async () => {
            
     }
 
+    async function getTokenAgora(channelName, uid){
+        let headersList = {
+        "Accept": "*/*",
+        "Content-Type": "application/json"
+        };
+        
+        console.log("tokenserver channelName :", channelName);
+        console.log("tokenserver uid :", uid);
+        
+        let bodyContent = JSON.stringify({
+          "tokenType": "rtc",
+          "channel": channelName,
+          "role": "publisher",
+          "uid": ""+uid,
+          "expire": 3600*4 
+        });
+        
+        let response = await fetch(URLs.getAgoraToken, { 
+          method: "POST",
+          body: bodyContent,
+          headers: headersList
+        });
+        
+        let data = await response.text();
+        console.log("tokenserver text: " , data);
+        //console.log("tokenserver json: " , response.json());
+        console.log("tokenserver token: " , JSON.parse(data)['token'])
+        return JSON.parse(data)['token']
+    }
+
+    const generateUid =()=>{
+        const randomNumber = Math.floor(Math.random() * (5000 - 1000 + 1)) + 1000
+        localStorage.setItem('uid', randomNumber)
+        return randomNumber;
+    }
+
     const handleHandDown = async ()=>{
         let headersList = {
             "Accept": "*/*",
@@ -419,14 +502,58 @@ const initRtc = async () => {
             console.log(data);
 
             if(response.status === 201){
-                getMessageStream();
+                // getMessageStream();
                 setHandIsUp(false);
             }else{
-                alert(response.status, "Something went wrong");
+                console.log(response.status, "Something went wrong");
             }
         } catch (error) {
             console.log(error);
-            alert(error);
+        }
+        messageInput.value = ""
+    }
+
+    const handleMicOff = async ()=>{
+
+        let headersList = {
+            "Accept": "*/*",
+            "Authorization": "Bearer "+TOKEN,
+            "Content-Type": "application/json"
+        }
+            
+        let bodyContent = JSON.stringify({
+            "id_user":  user,
+            "id_atelier":  atelierTest,
+            "nom":  "internaute.nom",
+            "image":  "assets/images/defaultUserIcon.png",
+            "role":  "role",
+            "message":  "internaute.message",
+            "description":  "internaute.description",
+            "micStatus":  false,
+            "handStatus":  false,
+            "title":  "updateMic",
+            "time":  2
+        });
+
+        try {
+
+            let response = await fetch(URLs.sendMessageStream, { 
+                method: "POST",
+                body: bodyContent,
+                headers: headersList
+            });
+            
+            let data = await response.json();
+            console.log(data);
+
+            if(response.status === 201){
+                // getMessageStream();
+                setHandIsUp(false);
+            }else{
+                console.log(response.status, "Something went wrong");
+            }
+        } catch (error) {
+            console.log(error);
         }
         messageInput.value = ""
     }
@@ -446,10 +573,10 @@ const initRtc = async () => {
         let bodyContent = JSON.stringify({
             "id_user":  user,
             "id_atelier":  atelierTest,
-            "nom":  "User 1",
+            "nom":  JSON.parse(getCookie('profile'))?.first_name+" "+JSON.parse(getCookie('profile'))?.last_name,
             "image":  "assets/images/defaultUserIcon.png",
             "role":  "userrole",
-            "message":  messageInput.value,
+            "message":  messageInput.current.value,
             "description":  "this is the description",
             "micStatus":  false,
             "handStatus":  false,
@@ -474,9 +601,8 @@ const initRtc = async () => {
             }
         } catch (error) {
             console.log(error);
-            alert(error);
         }
-        messageInput.value = ""
+        messageInput.current.value = ""
     }
 
     const formatMessageTime=(timestamp)=>{
@@ -491,18 +617,19 @@ const initRtc = async () => {
 
     const scrollToLatestMessage = () => {
         // const element = document.getElementById('chat-section');
-        messagesEndRef.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
     };
 
     const [atelier, setAtelier] = useState([]);
 
     useEffect(() => {
+        handleJoinMeeting();
         getMessageStream();
-        getAgoraToken();
     }, [id]);
 
     useEffect(()=>{
         initRtc();
+        generateUid();
     }, [])
 
 
@@ -565,12 +692,9 @@ const initRtc = async () => {
     }
 
     window.addEventListener('beforeunload', function() {
-            handleQuitMeetings();
+            handleQuitMeeting();
             handleUserLeft();
-            // handleCloseMic();
-        // const quit = this.confirm("Voulez-vous vraiment quitter la réunion ?")
-        // if(quit){
-        // }
+            clearInterval(interval.current);
     });
 
   return (
@@ -585,10 +709,11 @@ const initRtc = async () => {
             left: 0,
         }}>
             <button className='btn btn-default' onClick={()=>{
-                // leaveRoom()
-                handleUserLeft();
-                navigate(-1)
-
+                    // leaveRoom();
+                    handleQuitMeeting();
+                    handleUserLeft();
+                    // window.history.back();
+                    navigate(-1);
                 }}>
                 <i className='bx bxs-chevron-left'></i> {" Retour"}
             </button>
@@ -661,16 +786,16 @@ const initRtc = async () => {
                             height: '50px',
                             borderRadius: '50px',
                             objectFit: 'cover',
-                            border:'3px solid rgba(0,0,0,0.0)'
+                            border:'3px solid rgb(121, 223, 67)'
                         }}/>
                     </div>
                     <div className='text-center text-sm-right mt-2'>
-                        <h6>{"Speaker name"}</h6>
+                        <h6>{currentSpeaker}</h6>
                     </div>
                 </div>
                 <div>
                     <p className='col-12 text-center'>
-                        Lorem ipsum dolor sit amet consectetur adipisicing elit. Pariatur accusantium, odio minima in veritatis nemo...
+                        {currentSpeakerDesc}
                     </p>
                 </div>
             </div>

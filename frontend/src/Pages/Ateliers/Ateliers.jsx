@@ -1,4 +1,5 @@
-import React, {useEffect, useState} from 'react'
+import React, {useEffect, useState, useContext} from 'react'
+import AuthContext from "../../Context/AuthContext";
 import { useParams, useNavigate } from 'react-router-dom';
 import Card from '../../Components/Card'
 import VerticalScroll from '../../Components/VerticalScroll';
@@ -10,12 +11,14 @@ import FooterBar from '../../Components/FooterBar/FooterBar';
 function Atelier() {
 
 const [atelier, setAtelier] = useState([]);
-
+const [pageIsLoading, setPageIsLoading] = useState(true);
+const {isLoggedIn, setIsLoggedIn} = useContext(AuthContext);
+const [menuIsOpenned, setMenuIsOpenned] = useState(false);
 const { id } = useParams();
 
 useEffect(() => {
     fetchAtelier(id);
-  }, [id]);
+}, [id]);
   
   useEffect(() => {
       fetchMyAtelier();
@@ -28,10 +31,10 @@ const fetchAtelier = async(id)=>{
         "Accept": "*/*",
         "Authorization": "Bearer "+TOKEN,
         "Content-Type": "application/json"
-       }
+    }
               
        
-       try {
+    try {
         let response = await fetch(URLs.allAtelier, { 
           method: "GET",
           headers: headersList
@@ -44,24 +47,27 @@ const fetchAtelier = async(id)=>{
     } catch (error) {
         console.log(error.message);
     }finally{
-
+        setPageIsLoading(false);
     }
        
 }
 
 const fetchMyAtelier = async()=>{
+
     let headersList = {
         "Accept": "*/*",
         "Authorization": "Bearer "+TOKEN,
         "Content-Type": "application/json"
-       }
+    }
               
        
-       try {
+    try {
+
         let response = await fetch(URLs.allAtelier, { 
           method: "GET",
           headers: headersList
         });
+
         let data = await response.json();
         if(response?.status === 201){
             if(data?.data?.id_event){
@@ -70,10 +76,11 @@ const fetchMyAtelier = async()=>{
             }
             console.log(data)
         }
+
     } catch (error) {
         console.log(error.message);
     }finally{
-
+        setPageIsLoading(false);
     }
        
 }
@@ -93,10 +100,29 @@ const fetchMyAtelier = async()=>{
             <button className='btn btn-default' onClick={()=>navigate(-1)}>
                 <i className='bx bxs-chevron-left'></i> {" Retour"}
             </button>
-            <div></div>
+            <div>
+                <button className='btn' onClick={()=>setMenuIsOpenned(!menuIsOpenned)}>
+                    <i class='bx bx-dots-vertical-rounded' ></i>
+                </button>
+            </div>
+            {
+                menuIsOpenned 
+                &&
+                <div className='card' style={{position: 'fixed', zIndex: '9999999',  right:'10px', top:'50px'}}>
+                    <button className='btn' onClick={()=>{
+                            localStorage.clear();
+                            setIsLoggedIn(false);
+                            navigate('/')
+                        }
+                    }>
+                        <i className='bx bxs-door-open'></i>
+                        Deconnexion
+                    </button>
+                </div>
+            }
         </div>
 
-        <div className="" style={{
+        {/* <div className="" style={{
             height: "150px",
             padding:"50px",
             background:{bg1},
@@ -116,8 +142,15 @@ const fetchMyAtelier = async()=>{
                     Lorem ipsum dolor sit amet consectetur.
                 </p>
             </div>
-        </div>
-        <div className="page-content mt-4">
+        </div> */}
+        {pageIsLoading ?
+        (
+            <div className='d-flex justify-content-center align-items-center' style={{height:"90vh", flexDirection:"column"}}>
+                <i class='bx bx-loader-alt bx-spin' undefined style={{fontSize: "50px"}}></i>
+                <h5>Chargement...</h5>
+            </div>
+        ):
+        (<div className="page-content mt-4 p-3">
             <div className="col-12 d-flex justify-content-between align-items-center p-3">
                 <h4>
                     <b>{"Tous les ateliers"}</b>
@@ -173,7 +206,7 @@ const fetchMyAtelier = async()=>{
                 </VerticalScroll>
             </div>
 
-        </div>
+        </div>)}
         <FooterBar />
     </>
   )

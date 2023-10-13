@@ -43,9 +43,11 @@ const App=()=>
 
                 <Route exact path='/fiche-atelier/' element={<FicheAtelier />}/>
                 <Route exact path='/fiche-atelier/:id' element={<FicheAtelier />}/>
+
                 <Route exact path='/room/:id' element={<SalleAttente />}/>
                 <Route exact path='/inscription/' element={<InscriptionParticipant />}/>
                 <Route exact path='/view-badge/' element={<BadgeGenerator />}/>
+                
               </Routes>
             ):
             (

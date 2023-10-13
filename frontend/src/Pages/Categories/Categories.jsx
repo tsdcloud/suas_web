@@ -1,4 +1,5 @@
-import React, {useEffect, useState, useRef} from 'react'
+import React, {useEffect, useState, useContext} from 'react'
+import AuthContext from "../../Context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import VerticalScroll from '../../Components/VerticalScroll';
 import bg1 from '../../assets/bg1.jpeg'
@@ -10,8 +11,12 @@ import FooterBar from '../../Components/FooterBar/FooterBar';
 function Categories() {
 
 const [categories, setCategories] = useState([]);
+const [pageIsLoading, setPageIsLoading] = useState(true);
+const [menuIsOpenned, setMenuIsOpenned] = useState(false);
+const {isLoggedIn, setIsLoggedIn} = useContext(AuthContext);
 
 useEffect(()=>{
+    console.log(menuIsOpenned)
     fetchCategories()
 }, [])
 
@@ -32,15 +37,18 @@ const fetchCategories = async ()=>{
            });
            let data = await response.json();
             if(response.status === 201){
-                setCategories(data.data.slice(0, 5))
+                setCategories(data.data)
             }
        } catch (error) {
+            alert("Votre session a expiré");
+            // setIsLoggedIn(false);
             console.log(error.message);
        }finally{
-
+        setPageIsLoading(false);
        }
        
 }
+
   return (
     <>
         <div className="shadow-lg p-2 bg-white" style={{
@@ -56,10 +64,29 @@ const fetchCategories = async ()=>{
             <button className='btn btn-default' onClick={()=>navigate(-1)}>
                 <i className='bx bxs-chevron-left'></i> {" Retour"}
             </button>
-            <div></div>
+            <div>
+                <button className='btn' onClick={()=>setMenuIsOpenned(!menuIsOpenned)}>
+                    <i class='bx bx-dots-vertical-rounded' ></i>
+                </button>
+            </div>
         </div>
+        {
+            menuIsOpenned 
+            &&
+            <div className='card' style={{position: 'fixed', zIndex: '9999999',  right:'10px', top:'50px'}}>
+                <button className='btn' onClick={()=>{
+                        localStorage.clear();
+                        setIsLoggedIn(false);
+                        navigate('/')
+                    }
+                }>
+                    <i className='bx bxs-door-open'></i>
+                    Deconnexion
+                </button>
+            </div>
+        }
 
-        <div className="" style={{
+        {/* <div className="" style={{
             height: "150px",
             padding:"50px",
             background:{bg1},
@@ -79,10 +106,18 @@ const fetchCategories = async ()=>{
                     Lorem ipsum dolor sit amet consectetur.
                 </p>
             </div>
-        </div>
-        <div className="page-content mt-4">
+        </div> */}
+        {pageIsLoading ?
+        (
+            <div className='d-flex justify-content-center align-items-center' style={{height:"90vh", flexDirection:"column"}}>
+                <i class='bx bx-loader-alt bx-spin' undefined style={{fontSize: "50px"}}></i>
+                <h5>Chargement...</h5>
+            </div>
+        ):
+        (
+            <div className="page-content mt-4">
             <div className="col-12 d-flex justify-content-between align-items-center p-3">
-                <h4>
+                <h4 className='mt-5'>
                     <b>{"Mes categories"}</b>
                 </h4>
                 <a href="#">
@@ -134,6 +169,9 @@ const fetchCategories = async ()=>{
             </div>
 
         </div>
+        )
+    }
+        
         {/* <div className='back-drop'>
             <div className='side-bar shadow-lg p-2'>
                 <div className="d-flex justify-content-between">

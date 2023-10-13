@@ -27,3 +27,6 @@ test
 test-sso
 build
 build-sso
+package-lock.json
+package.json
+*.zip

@@ -18,6 +18,7 @@ const LoginPage = () => {
 
   const userEmail = useRef();
   const userPassword = useRef();
+  const interval = useRef();
 
 
   const validation=(data)=>{
@@ -56,15 +57,16 @@ const LoginPage = () => {
   /**
    * 
    */
-  const handleSignIn = async() => {
-    setIsLoading(true);
-    const formData = {
-      email: userEmail.current.value,
-      password: userPassword.current.value,
-    }
+  const handleSignIn = async(e) => {
+    e.preventDefault();
     
+    const formData = {
+      email: userEmail.current?.value,
+      password: userPassword.current?.value,
+    }
+
     if(validation(formData)){
-      
+      setIsLoading(true);
       let headersList = {
         "Accept": "*/*",
         "Content-Type": "application/json"
@@ -85,9 +87,6 @@ const LoginPage = () => {
          });
          
          let data = await response.json();
-
-         console.log(data);
-         console.log(response);
          if(response.status == 201) {
             localStorage.setItem("access_token", data.access);
             localStorage.setItem("refresh_token", data.refresh);
@@ -96,24 +95,53 @@ const LoginPage = () => {
             // const refreshToken = localStorage.getItem("refresh_token");
             setIsLoggedIn(true)
             // setAuthTokens({accessToken, refreshToken});
+            console.log(data.access);
+            await handleGetProfile(data.access);
             setFormMsg("")
             navigate("/")
+            userPassword.current.value = "";
          }
          else{
           setFormMsg("Email ou mot de passe invalid")
-          userPassword.current.value = "";
          }
          console.log(data);
+         userPassword.current.value = "";
        } catch (error) {
-        userPassword.current.value = "";
+        console.error("[SUAS ERROR]", error);
        }finally{
-        userPassword.current.value = "";
+        setIsLoading(false);
        }
     }
-    else{
-      setIsLoading(false);
-    }
      
+  }
+
+  const handleGetProfile = async(token) => {    
+      // setIsLoading(true);
+
+      let headersList = {
+        "Accept": "*/*",
+        "Content-Type": "application/json",
+        "Authorization": "Bearer "+token
+       }
+              
+       try {
+         let response = await fetch(URLs.getProfile, { 
+           method: "GET",
+           headers: headersList
+         });
+         
+         let data = await response.json();
+
+         if(response.status == 201) {
+            console.log(data);
+            document.cookie = `profile=${JSON.stringify(data)}`
+          }
+      }catch (error) {
+        console.log(error);
+       }finally{
+        // userPassword.current.value = "";
+        setIsLoading(false);
+       }
   }
 
   return(
@@ -129,23 +157,27 @@ const LoginPage = () => {
         >
           <img src={LogoTransparent} alt="No image found" className='logo'/>
         </div>
+
         <div className='card-body py-4'>
+
+          <form 
+          onSubmit={handleSignIn}>
           <h1 className='card-heading'>Login</h1>
           <label htmlFor="useremail" className="text-light fw-semibold">
             <small>Email :</small>
-            </label>
+            </label><br />
           <input 
           type="text" 
           className='form-input' 
           id='useremail' 
           placeholder='Votre address email'
           ref={userEmail}
-          />
-          <small className='text-danger'>{emailMsg}</small>
+          /> <br />
+          <small className='text-danger'>{emailMsg}</small> <br />
 
           <label htmlFor="password" className="text-light fw-semibold">
             <small>Password :</small>
-            </label>
+            </label><br />
           <input 
           type="password" 
           name="" 
@@ -153,7 +185,7 @@ const LoginPage = () => {
           className='form-input' 
           placeholder='Votre mot de passe'
           ref={userPassword}
-          />
+          /> <br />
           <small className='text-danger'>{passwordMsg}</small>
 
           <div className="d-flex justify-end mt-2">
@@ -172,8 +204,8 @@ const LoginPage = () => {
           <div className='row'>
             <button className='btn mt-3 _shadow' 
             style={{backgroundColor: "#1C616D", color:"#fff", borderRadius:"50px"}}
-            onClick={()=>{handleSignIn()}}
             disabled={isLoading}
+            type='submit'
             >
               {
                 isLoading && (<i class='bx bx-loader-alt bx-spin' undefined ></i>)
@@ -186,6 +218,7 @@ const LoginPage = () => {
               <Link className='text-center' to="/sign-up">Créer un compte</Link>
             </div>
           </div>
+          </form>
         </div>
       </div>
     </div>

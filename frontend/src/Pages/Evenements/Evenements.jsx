@@ -1,4 +1,5 @@
-import React, {useEffect, useState} from 'react'
+import React, {useEffect, useState, useContext} from 'react'
+import AuthContext from "../../Context/AuthContext";
 import { useParams, useNavigate } from 'react-router-dom';
 import Card from '../../Components/Card'
 import VerticalScroll from '../../Components/VerticalScroll';
@@ -9,10 +10,15 @@ import "./Evenements.css"
 
 function Evenements() {
 const [events, setEvents] = useState([]);
+const {isLoggedIn, setIsLoggedIn} = useContext(AuthContext);
+const [pageIsLoading, setPageIsLoading] = useState(true);
+const [menuIsOpenned, setMenuIsOpenned] = useState(false);
 const { id } = useParams();
 const navigate = useNavigate();
+
+
 useEffect(()=>{
-    fetchEvents()
+    // fetchEvents()
 }, [])
 
 useEffect(() => {
@@ -40,14 +46,16 @@ const fetchEvents = async(id)=>{
         let data = await response.json();
         console.log(data)
         if(response.status === 201){
-            setEvents(data.data.slice(0, 5))
+            setEvents(data.data);
         }
     } catch (error) {
         console.log(error.message);
+        setIsLoggedIn(false);
     }finally{
-
+        setPageIsLoading(false);
     }   
 }
+
   return (
     <>
         <div className="shadow-lg p-2 bg-white" style={{
@@ -63,10 +71,29 @@ const fetchEvents = async(id)=>{
             <button className='btn btn-default' onClick={()=>navigate(-1)}>
                 <i className='bx bxs-chevron-left'></i> {" Retour"}
             </button>
-            <div></div>
+            <div>
+                <button className='btn' onClick={()=>setMenuIsOpenned(!menuIsOpenned)}>
+                    <i class='bx bx-dots-vertical-rounded' ></i>
+                </button>
+            </div>
+            {
+                menuIsOpenned 
+                &&
+                <div className='card' style={{position: 'fixed', zIndex: '9999999',  right:'10px', top:'50px'}}>
+                    <button className='btn' onClick={()=>{
+                            localStorage.clear();
+                            setIsLoggedIn(false);
+                            navigate('/')
+                        }
+                    }>
+                        <i className='bx bxs-door-open'></i>
+                        Deconnexion
+                    </button>
+                </div>
+            }
         </div>
 
-        <div className="" style={{
+        {/* <div className="" style={{
             height: "150px",
             padding:"50px",
             background:{bg1},
@@ -86,9 +113,16 @@ const fetchEvents = async(id)=>{
                     Lorem ipsum dolor sit amet consectetur.
                 </p>
             </div>
-        </div>
-        <div className="page-content mt-4">
-            <div className="col-12 d-flex justify-content-between align-items-center p-3">
+        </div> */}
+        {pageIsLoading ?
+        (
+            <div className='d-flex justify-content-center align-items-center' style={{height:"90vh", flexDirection:"column"}}>
+                <i class='bx bx-loader-alt bx-spin' undefined style={{fontSize: "50px"}}></i>
+                <h5>Chargement...</h5>
+            </div>
+        ):
+        (<div className="page-content mt-4">
+            <div className="col-12 d-flex justify-content-between align-items-center p-3 mt-4">
                 <h4>
                     <b>{"Tous les evenements"}</b>
                 </h4>
@@ -140,7 +174,7 @@ const fetchEvents = async(id)=>{
                     }
                 </div>
             </div>
-        </div>
+        </div>)}
         <FooterBar />
     </>
   )
