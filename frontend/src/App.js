@@ -46,7 +46,7 @@ const App=()=>
 
                 <Route exact path='/room/:id' element={<SalleAttente />}/>
                 <Route exact path='/inscription/' element={<InscriptionParticipant />}/>
-                <Route exact path='/view-badge/' element={<BadgeGenerator />}/>
+                <Route exact path='/view-badge/:id' element={<BadgeGenerator />}/>
                 
               </Routes>
             ):

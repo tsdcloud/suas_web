@@ -8,6 +8,8 @@ const URLs = {
     getMessageStream: "http://149.202.42.116:8000/messagerie/StreamMessage/GetUntil",
     sendMessageStream: "http://149.202.42.116:8000/messagerie/StreamMessage/Create",
     getAgoraToken: 'https://agora-token-service-production-0cf9.up.railway.app/getToken',
+    inscriptionAtelier: "http://149.202.42.116:8000/inscription/GetAllFromAtelier",
+
 }
 
 module.exports = {URLs}

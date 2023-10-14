@@ -184,13 +184,13 @@ const fetchMyAtelier = async()=>{
             )
             }
         </div>
-        {/* <button className="float-btn btn" style={{background:"#3b6269", color:"#fff", bottom: "90px", right:"10px"}}
+        {/**/} <button className="float-btn btn" style={{background:"#3b6269", color:"#fff", bottom: "90px", right:"10px"}}
             onClick={()=>{
-                navigate("/view-badge")
+                navigate("/view-badge/"+id)
             }}
         >
             <i className="bx bx-id-card"></i>{" Avoir mon badge"}
-        </button> */}
+        </button> 
         <FooterBar />
     </>
   )

@@ -56,6 +56,36 @@ atelierController.post('/getmessages/', async (req, res) => {
        }
 })
 
+atelierController.post('/getUserParticipant/', async (req, res) => {
+    let headersList = {
+        "Accept": "*/*",
+        "Authorization": req.headers.authorization,
+        "Content-Type": "application/json" 
+       }
+       
+       let bodyContent = JSON.stringify({
+         "id_atelier":req.body.id_atelier,
+       });
+       
+       let reqOptions = {
+         url: URLs.inscriptionAtelier,
+         method: "POST",
+         headers: headersList,
+         data: bodyContent,
+       }
+       
+       try {
+           let response = await axios.request(reqOptions);
+            if(response.status === 200){
+                return res.status(201).json(response.data);
+            }
+            return res.status(400).json({message: response.message})
+       } catch (error) {
+        return res.status(500).json({message: error.message});
+       }
+})
+
+
 atelierController.post('/sendmessages/', async (req, res) => {
     let headersList = {
         "Accept": "*/*",
